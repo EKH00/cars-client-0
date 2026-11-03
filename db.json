@@ -1,0 +1,41 @@
+{
+  "cars": [
+    {
+      "brand": "Toyota",
+      "model": "Corolla",
+      "doorsNumber": 4,
+      "luggageCapacity": 470,
+      "engineCapacity": 1800,
+      "fuelType": 1,
+      "productionDate": "2022-05-10",
+      "averageFuelConsumption": 6.4,
+      "bodyType": 1,
+      "id": "1"
+    },
+    {
+      "id": "2",
+      "brand": "Skoda",
+      "model": "Octavia",
+      "doorsNumber": 5,
+      "luggageCapacity": 600,
+      "engineCapacity": 1500,
+      "fuelType": 1,
+      "productionDate": "2021-03-15",
+      "averageFuelConsumption": 6.8,
+      "bodyType": 1
+    },
+    {
+      "brand": "opel",
+      "model": "astra",
+      "doorsNumber": 5,
+      "luggageCapacity": 1802,
+      "engineCapacity": 1200,
+      "fuelType": 1,
+      "productionDate": "2010-05-05",
+      "averageFuelConsumption": 7,
+      "bodyType": 1,
+      "id": "jjspTTi6BRY"
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
+}
