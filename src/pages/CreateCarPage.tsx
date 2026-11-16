@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import type { FormEvent } from "react";
 import { createCar } from "../services/carService";
 import type { NewCar } from "../models/Car";
+import CarInputForm from "../components/CarInputForm";
 
 export default function CreateCarPage() {
   const navigate = useNavigate();
@@ -50,70 +51,15 @@ export default function CreateCarPage() {
 
   return (
     <section className="car-create">
-        <form id="create-car-form" onSubmit={handleCreateCar}>      
-            <h2>
-            Podaj dane samochodu:
-            </h2>
-            <p>Marka:
-                <input
-                    type="text"
-                    onChange={(e) => setCar({ ...car, brand: e.target.value })}
-                    />
-            </p>
-            <p>Model:
-                <input
-                    type="text"
-                    onChange={(e) => setCar({ ...car, model: e.target.value })}
-                    />
-            </p>
-            <p>Liczba drzwi:
-                <input
-                    type="number"
-                    onChange={(e) => setCar({ ...car, doorsNumber: parseInt(e.target.value) })}
-                    />
-            </p>
-            <p>Pojemność bagażnika:
-                <input
-                    type="number"
-                    onChange={(e) => setCar({ ...car, luggageCapacity: parseInt(e.target.value) })}
-                    />
-            </p>
-            <p>Pojemność silnika:
-                <input
-                    type="number"
-                    onChange={(e) => setCar({ ...car, engineCapacity: parseInt(e.target.value) })}
-                    />
-            </p>
-            <p>Rodzaj paliwa:
-                <input
-                    type="number"
-                    onChange={(e) => setCar({ ...car, fuelType: parseInt(e.target.value) })}
-                    />
-            </p>
-            <p>Data produkcji:
-                <input
-                    type="date"
-                    onChange={(e) => setCar({ ...car, productionDate: e.target.value })}
-                    />
-            </p>
-            <p>Średnie spalanie:
-                <input
-                    type="number"
-                    onChange={(e) => setCar({ ...car, averageFuelConsumption: parseFloat(e.target.value) })}
-                    />
-            </p>
-            <p>Typ nadwozia:
-                <input
-                    type="number"
-                    onChange={(e) => setCar({ ...car, bodyType: parseInt(e.target.value) })}
-                    />
-            </p>
-
-            <p><button type="submit" disabled={isLoading}>Zatwierdź</button></p>
-
-            <p><button type="button" onClick={() => window.history.back()}>Powrót</button></p>
-        </form>
-
+      <CarInputForm
+        car={car}
+        title="Podaj dane samochodu:"
+        submitLabel="Dodaj samochód"
+        isSubmitting={isLoading}
+        onChange={setCar}
+        onSubmit={handleCreateCar}
+        onCancel={() => navigate("/cars")}
+      />
     </section>
   );
 }

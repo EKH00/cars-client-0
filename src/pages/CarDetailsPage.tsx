@@ -2,17 +2,31 @@ import { useEffect, useState } from "react";
 import type { Car } from "../models/Car";
 import { getCarById } from "../services/carService";
 import { useNavigate, useParams } from "react-router";
+import axios from 'axios';
+import { useCarUiStore } from "../store/useCarUiStore";
 
-export default function CarDetails() {
-  const [car, setCar] = useState<Car | null>(null);
-  // Czy w trakcie pobierania danych. Po pierwszym renderowaniu komponent
-  // dopiero rozpocznie pobieranie danych.
+export default function CarCard() {
+  const [car, setCar] = useState<Car>({} as Car);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); // czy jest błąd
+  const [error, setError] = useState<string | null>(null);
 
   const { id } = useParams();
 
   const navigate = useNavigate();
+
+  const isFavorite =
+    useCarUiStore(
+      (state) =>
+        state.favoriteCarIds.includes(
+          car.id,
+        ),
+  );
+
+  const toggleFavorite =
+    useCarUiStore(
+      (state) =>
+        state.toggleFavorite,
+  );
 
   useEffect(() => {
 
@@ -20,25 +34,16 @@ export default function CarDetails() {
       setError("Nie podano identyfikatora samochodu.");
       return;
     }
-    // AbortController jest mechanizmem udostępnianym przez przeglądarkę,
-    // a nie specjalną funkcją Reacta. Służy do sygnalizowania, że określona
-    // operacja asynchroniczna powinna zostać anulowana.
     const controller = new AbortController();
 
-    // Funkcja pobierające dane z backendu tzw. "kod efektu". Wywołujemy ją niżej.
     async function loadCar(id: string) {
       try {
         setIsLoading(true);
         setError(null);
-        // Funkcji getCarById przekazujemy sygnał anulowania
         const loadedCar = await getCarById(id, controller.signal);
         setCar(loadedCar);
       } catch (caughtError) {
-        if (
-          // Anulowanie żądania
-          caughtError instanceof DOMException &&
-          caughtError.name === "AbortError"
-        ) {
+        if (axios.isCancel(caughtError)) {
           return;
         }
 
@@ -57,12 +62,10 @@ export default function CarDetails() {
 
     loadCar(id);
 
-    // Jeśli komponent zostanie odmontowany, to mamy możliwość ,,sprzątania" (anulujemy żądanie).
     return () => {
       controller.abort();
     };
-  }, []); // Puste nawiasy [] oznaczają, że efekt jest niezależny od stanu, tzn.
-  // wykona się tylko raz po wyrenderowaniu komponentu.
+  }, []);
 
   if (isLoading) {
     return <p>Ładowanie danych...</p>;
@@ -78,26 +81,39 @@ export default function CarDetails() {
 
   return (
     <section className="car-details">
-        {/* // React potrzebuje klucza key, aby identyfikować elementy listy pomiędzy */}
-        {/* // kolejnymi renderowaniami. Dzięki temu może poprawnie powiązać elementy, */}
-        {/* // gdy lista zostanie zmieniona. */}
-        <article key={car.id} className="car-card">
-            <h2>
-            {car.brand} {car.model}
-            </h2>
-            <p>Liczba drzwi: {car.doorsNumber}</p>
-            <p>Pojemność bagażnika: {car.luggageCapacity}</p>
-            <p>Pojemność silnika: {car.engineCapacity}</p>
-            <p>Rodzaj paliwa: {car.fuelType}</p>
-            <p>Data produkcji: {car.productionDate}</p>
-            <p>Średnie spalanie: {car.averageFuelConsumption}</p>
-            <p>Typ nadwozia: {car.bodyType}</p>
-
-            <p><button onClick={() => navigate(`/cars/${car.id}/edit`)}>Edytuj</button></p>
-
-            <p><button onClick={() => navigate('/cars')}>Powrót</button></p>
-        </article>
-
+      <article className="car-details-card">
+        <h2>
+          {car.brand} {car.model}
+        </h2>
+        <dl className="car-details-list">
+          <div><dt>Liczba drzwi</dt><dd>{car.doorsNumber}</dd></div>
+          <div><dt>Pojemność bagażnika</dt><dd>{car.luggageCapacity}</dd></div>
+          <div><dt>Pojemność silnika</dt><dd>{car.engineCapacity}</dd></div>
+          <div><dt>Rodzaj paliwa</dt><dd>{car.fuelType}</dd></div>
+          <div><dt>Data produkcji</dt><dd>{car.productionDate.slice(0, 10)}</dd></div>
+          <div><dt>Średnie spalanie</dt><dd>{car.averageFuelConsumption}</dd></div>
+          <div><dt>Typ nadwozia</dt><dd>{car.bodyType}</dd></div>
+        </dl>
+        <div className="car-details-actions">
+          <button
+            type="button"
+            className={
+              isFavorite
+                ? "favorite-button active-favorite"
+                : "favorite-button"
+            }
+            onClick={() => toggleFavorite(car.id)}
+          >
+            {isFavorite ? "Usuń z ulubionych" : "Dodaj do ulubionych"}
+          </button>
+          <button type="button" onClick={() => navigate(`/cars/${car.id}/edit`)}>
+            Edytuj
+          </button>
+          <button type="button" onClick={() => navigate("/cars")}>
+            Powrót
+          </button>
+        </div>
+      </article>
     </section>
   );
 }

@@ -35,6 +35,18 @@
       "averageFuelConsumption": 7,
       "bodyType": 1,
       "id": "jjspTTi6BRY"
+    },
+    {
+      "brand": "Ford",
+      "model": "Cortina",
+      "doorsNumber": 3,
+      "luggageCapacity": 3000,
+      "engineCapacity": 3000,
+      "fuelType": 1,
+      "productionDate": "1967-06-13",
+      "averageFuelConsumption": 8,
+      "bodyType": 1,
+      "id": "XRubB9tjZC8"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

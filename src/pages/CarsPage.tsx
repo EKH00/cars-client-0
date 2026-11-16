@@ -1,42 +1,53 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
+import CarCard from "../components/CarCard";
 import type { Car } from "../models/Car";
-import { getCars, deleteCar } from "../services/carService";
+import { deleteCar, getCars } from "../services/carService";
+import { useCarUiStore } from "../store/useCarUiStore";
 
-export default function CarList() {
+export default function CarsPage() {
   const [cars, setCars] = useState<Car[]>([]);
-  // Czy w trakcie pobierania danych. Po pierwszym renderowaniu komponent
-  // dopiero rozpocznie pobieranie danych.
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); // czy jest błąd
+  const [error, setError] = useState<string | null>(null);
+
+  const searchTerm = useCarUiStore((state) => state.searchTerm);
+  const setSearchTerm = useCarUiStore((state) => state.setSearchTerm);
+  const showFavoritesOnly = useCarUiStore((state) => state.showFavoritesOnly);
+  const setShowFavoritesOnly = useCarUiStore(
+    (state) => state.setShowFavoritesOnly,
+  );
+  const favoriteCarIds = useCarUiStore((state) => state.favoriteCarIds);
+  const removeFavorite = useCarUiStore((state) => state.removeFavorite);
+
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const visibleCars = cars.filter((car) => {
+    const matchesSearch =
+      car.brand.toLowerCase().includes(normalizedSearch) ||
+      car.model.toLowerCase().includes(normalizedSearch);
+    const matchesFavorite =
+      !showFavoritesOnly || favoriteCarIds.includes(car.id);
+
+    return matchesSearch && matchesFavorite;
+  });
 
   useEffect(() => {
-    // AbortController jest mechanizmem udostępnianym przez przeglądarkę,
-    // a nie specjalną funkcją Reacta. Służy do sygnalizowania, że określona
-    // operacja asynchroniczna powinna zostać anulowana.
     const controller = new AbortController();
 
-    // Funkcja pobierające dane z backendu tzw. "kod efektu". Wywołujemy ją niżej.
     async function loadCars() {
       try {
         setIsLoading(true);
         setError(null);
-        // Funkcji getCars przekazujemy sygnał anulowania
-        const loadedCars = await getCars(controller.signal);
-        setCars(loadedCars);
+        setCars(await getCars(controller.signal));
       } catch (caughtError) {
-        if (
-          // Anulowanie żądania
-          caughtError instanceof DOMException &&
-          caughtError.name === "AbortError"
-        ) {
+        if (axios.isCancel(caughtError)) {
           return;
         }
 
-        if (caughtError instanceof Error) {
-          setError(caughtError.message);
-        } else {
-          setError("Wystąpił nieznany błąd.");
-        }
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : "Wystąpił nieznany błąd.",
+        );
       } finally {
         if (!controller.signal.aborted) {
           setIsLoading(false);
@@ -44,15 +55,24 @@ export default function CarList() {
       }
     }
 
+    void loadCars();
+    return () => controller.abort();
+  }, []);
 
-    loadCars();
-
-    // Jeśli komponent zostanie odmontowany, to mamy możliwość ,,sprzątania" (anulujemy żądanie).
-    return () => {
-      controller.abort();
-    };
-  }, []); // Puste nawiasy [] oznaczają, że efekt jest niezależny od stanu, tzn.
-  // wykona się tylko raz po wyrenderowaniu komponentu.
+  async function handleDeleteCar(id: string) {
+    try {
+      setError(null);
+      await deleteCar(id);
+      setCars((currentCars) => currentCars.filter((car) => car.id !== id));
+      removeFavorite(id);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Wystąpił nieznany błąd.",
+      );
+    }
+  }
 
   if (isLoading) {
     return <p>Ładowanie danych...</p>;
@@ -61,47 +81,44 @@ export default function CarList() {
   if (error) {
     return <p className="error">{error}</p>;
   }
-
   if (cars.length === 0) {
     return <p>Nie znaleziono samochodów.</p>;
   }
 
-  async function handleDeleteCar(id: string){
-      const confirmed = window.confirm(
-        'Czy na pewno chcesz usunąć ten samochód?'
-      );
-      if (confirmed) {
-        try {
-          setIsLoading(true);
-          setError(null);
-          
-          await deleteCar(id);
-          setCars((currentCars) => currentCars.filter((car) => car.id !== id));
-        } catch (error) {
-          if (error instanceof Error) {
-            setError(error.message);
-          } else {
-            setError("Wystąpił nieznany błąd.");
-          }
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    }
-
   return (
-    <section className="cars-grid">
-      {cars.map((car) => (
-        // React potrzebuje klucza key, aby identyfikować elementy listy pomiędzy
-        // kolejnymi renderowaniami. Dzięki temu może poprawnie powiązać elementy,
-        // gdy lista zostanie zmieniona.
-        <article key={car.id} className="car-card">
-          <h2>
-            <a href={`/cars/${car.id}`}>{car.brand} {car.model}</a>
-          </h2>
-          <p><button onClick={() => handleDeleteCar(car.id)}>Usuń</button></p>
-        </article>
-      ))}
+    <section className="cars-page">
+      <h1>Samochody</h1>
+
+      <div className="cars-toolbar">
+        <input
+          type="search"
+          placeholder="Szukaj po marce lub modelu..."
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+        />
+        <label className="favorite-filter">
+          <input
+            type="checkbox"
+            checked={showFavoritesOnly}
+            onChange={(event) => setShowFavoritesOnly(event.target.checked)}
+          />
+          Tylko ulubione
+        </label>
+      </div>
+
+      {error && <p className="error" role="alert">{error}</p>}
+
+      {cars.length === 0 ? (
+        <p>Nie znaleziono samochodów.</p>
+      ) : visibleCars.length === 0 ? (
+        <p>Brak samochodów pasujących do wybranych filtrów.</p>
+      ) : (
+        <div className="cars-list">
+          {visibleCars.map((car) => (
+            <CarCard key={car.id} car={car} onDelete={handleDeleteCar} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
