@@ -4,8 +4,15 @@ import CarCard from "../components/CarCard";
 import type { Car } from "../models/Car";
 import { deleteCar, getCars } from "../services/carService";
 import { useCarUiStore } from "../store/useCarUiStore";
+import { useAuthStore } from "../store/useAuthStore";
 
 export default function CarsPage() {
+
+  const user =
+    useAuthStore(
+      (state) => state.user,
+    );
+
   const [cars, setCars] = useState<Car[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +23,17 @@ export default function CarsPage() {
   const setShowFavoritesOnly = useCarUiStore(
     (state) => state.setShowFavoritesOnly,
   );
-  const favoriteCarIds = useCarUiStore((state) => state.favoriteCarIds);
+  const favoriteCarIdsByUser =
+    useCarUiStore(
+      (state) =>
+        state.favoriteCarIdsByUser,
+    );
+
+  const favoriteCarIds =
+    user
+      ? favoriteCarIdsByUser[user.id] ?? []
+      : [];
+      
   const removeFavorite = useCarUiStore((state) => state.removeFavorite);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -64,7 +81,7 @@ export default function CarsPage() {
       setError(null);
       await deleteCar(id);
       setCars((currentCars) => currentCars.filter((car) => car.id !== id));
-      removeFavorite(id);
+      if (user) { removeFavorite(user.id, id); }
     } catch (caughtError) {
       setError(
         caughtError instanceof Error

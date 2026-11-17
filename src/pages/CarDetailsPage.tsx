@@ -4,9 +4,13 @@ import { getCarById } from "../services/carService";
 import { useNavigate, useParams } from "react-router";
 import axios from 'axios';
 import { useCarUiStore } from "../store/useCarUiStore";
+import { useAuthStore } from "../store/useAuthStore";
 
-export default function CarCard() {
-  const [car, setCar] = useState<Car>({} as Car);
+export default function CarDetailsPage() {
+
+  const user = useAuthStore((state) => state.user);
+
+  const [car, setCar] = useState<Car | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,24 +18,35 @@ export default function CarCard() {
 
   const navigate = useNavigate();
 
-  const isFavorite =
+  const isAdmin =
+    user?.roles.includes('Admin')
+      ?? false;
+
+  const favoriteCarIds =
     useCarUiStore(
       (state) =>
-        state.favoriteCarIds.includes(
-          car.id,
-        ),
-  );
+        user
+          ? state.favoriteCarIdsByUser[
+            user.id
+          ] ?? []
+            : [],
+    );
 
   const toggleFavorite =
     useCarUiStore(
       (state) =>
         state.toggleFavorite,
-  );
+    );
+
+  const isFavorite =
+    car !== null
+      && favoriteCarIds.includes(car.id);
 
   useEffect(() => {
 
     if (!id) {
       setError("Nie podano identyfikatora samochodu.");
+      setIsLoading(false);
       return;
     }
     const controller = new AbortController();
@@ -65,7 +80,7 @@ export default function CarCard() {
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [id]);
 
   if (isLoading) {
     return <p>Ładowanie danych...</p>;
@@ -75,7 +90,7 @@ export default function CarCard() {
     return <p className="error">{error}</p>;
   }
 
-  if (car === null) {
+  if (!car) {
     return <p>Nie znaleziono samochodu.</p>;
   }
 
@@ -102,13 +117,17 @@ export default function CarCard() {
                 ? "favorite-button active-favorite"
                 : "favorite-button"
             }
-            onClick={() => toggleFavorite(car.id)}
+            onClick={() => {if (user) {
+              toggleFavorite(user.id, car.id);
+            }}}
           >
             {isFavorite ? "Usuń z ulubionych" : "Dodaj do ulubionych"}
           </button>
-          <button type="button" onClick={() => navigate(`/cars/${car.id}/edit`)}>
-            Edytuj
-          </button>
+          {isAdmin && (
+            <button type="button" onClick={() => navigate(`/cars/${car.id}/edit`)}>
+              Edytuj
+            </button>
+          )}
           <button type="button" onClick={() => navigate("/cars")}>
             Powrót
           </button>

@@ -33,7 +33,7 @@ export default function CarInputForm({
   }
 
   return (
-    <form className="car-input-form" onSubmit={onSubmit}>
+    <form className="car-form" onSubmit={onSubmit}>
       <h2>{title}</h2>
       <label>
         Marka:
@@ -119,7 +119,7 @@ export default function CarInputForm({
           onChange={(event) => updateNumber("bodyType", event.target.value)}
         />
       </label>
-      <div className="car-input-form-actions">
+      <div className="car-form-actions">
         <button type="submit" disabled={isSubmitting}>
           {submitLabel}
         </button>
